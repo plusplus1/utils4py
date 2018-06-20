@@ -26,7 +26,7 @@ setup(
         "flask>=1.0.2",
         "PyMySQL>=0.8.1",
         "redis>=2.10.6",
-        "gevent>=1.3.4"
+        "gevent>=1.2.2"
     ],
     extras_require=extras_require,
 )

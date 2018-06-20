@@ -17,7 +17,7 @@ class AppServer(object):
         App Server
     """
 
-    filter_paths = []
+    filter_paths = ["utils4py.flask_ext.filter"]
     route_paths = []
 
     def __init__(self, app_name, logger):
