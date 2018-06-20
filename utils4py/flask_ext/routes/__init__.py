@@ -124,15 +124,15 @@ def _scan_services(path):
 
             if not str_route:
                 str_route = default_endpoint.replace(path, "", 1)
-                str_route = "/" + "/".join(filter(lambda x: x, str.split(str_route, "."))[:-1])
-                setattr(s_cls, __FIELD_ROUTE, str_route)
+                fragments = [x for x in str.split(str_route, ".") if x]
+                setattr(s_cls, __FIELD_ROUTE, "/" + "/".join(fragments[:-1]))
                 pass
 
             if not str_endpoint:
                 setattr(s_cls, __FIELD_ENDPOINT, default_endpoint)
 
             svr_classes.append(s_cls)
-        pass
+            pass
 
     return svr_classes
 
@@ -175,7 +175,7 @@ def init_routes(app, paths):
         return
 
     if paths and isinstance(paths, list):
-        map(_register, paths)
+        _ = [_register(p) for p in paths]
 
     logging.info("\tRegistered %d services", len(registered_map))
     return

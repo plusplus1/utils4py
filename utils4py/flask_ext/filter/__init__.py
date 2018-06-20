@@ -71,18 +71,19 @@ def init_filters(app, filters=None, paths=None, **kwargs):
     registered_map = dict()
 
     def _register(filter_classes):
-        if filter_classes and isinstance(filter_classes, list):
-            for cls_filter in filter_classes:
-                if not inspect.isclass(cls_filter) or not issubclass(cls_filter, BaseFilter) \
-                        or cls_filter is BaseFilter:
-                    continue
-                cls_id = id(cls_filter)
-                if cls_id in registered_map:
-                    continue
-                cls_filter(app, **kwargs)()
-                str_name = "{}".format(cls_filter.__module__)
-                logging.debug("\tRegistered Filter ok, name = %-50s", str_name)
-                registered_map[id(cls_filter)] = cls_filter
+        if not filter_classes:
+            return
+        for cls_filter in filter_classes:
+            if not inspect.isclass(cls_filter) or not issubclass(cls_filter, BaseFilter) \
+                    or cls_filter is BaseFilter:
+                continue
+            cls_id = id(cls_filter)
+            if cls_id in registered_map:
+                continue
+            cls_filter(app, **kwargs)()
+            str_name = "{}".format(cls_filter.__module__)
+            logging.debug("\tRegistered Filter ok, name = %-50s", str_name)
+            registered_map[id(cls_filter)] = cls_filter
         return
 
     _register(filters)

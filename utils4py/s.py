@@ -33,7 +33,7 @@ class TextUtils(object):
         if isinstance(value, six.string_types):
             return value
         if isinstance(value, Exception):
-            return cls.to_string(value.message)
+            return cls.to_string(value.args)
         if value is None:
             return ""
         return str(value)
