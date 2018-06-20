@@ -5,7 +5,7 @@ import os
 
 from six.moves import configparser
 
-import env
+import utils4py.env
 
 
 class ConfUtils(object):
@@ -18,7 +18,7 @@ class ConfUtils(object):
 
     @classmethod
     def get_base_dir(cls):
-        if env.is_debug():
+        if utils4py.env.is_debug():
             return os.path.abspath(os.path.join(os.getcwd(), cls.__CONF_TEST_DIR__))
         return os.path.abspath(os.path.join(os.getcwd(), cls.__CONF_DIR__))
 

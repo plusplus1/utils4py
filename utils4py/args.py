@@ -6,7 +6,7 @@ import re
 
 import six
 
-from s import TextUtils
+from utils4py.s import TextUtils
 
 
 class ArgsChecker(object):

@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import env
-from args import ArgsChecker
-from conf import ConfUtils
-from err import ErrUtils
-from s import TextUtils
+import utils4py.env as env
+from utils4py.args import ArgsChecker
+from utils4py.conf import ConfUtils
+from utils4py.err import ErrUtils
+from utils4py.s import TextUtils
