@@ -16,7 +16,7 @@ import abc
 import logging
 import traceback
 
-from six import iteritems
+from six import add_metaclass, iteritems
 
 import utils4py
 from utils4py.mixin import ArgMixin, ErrMixin
@@ -48,12 +48,11 @@ class ResultBuilder(object):
         return ret
 
 
+@add_metaclass(abc.ABCMeta)
 class BaseService(ErrMixin, ArgMixin):
     """
         base service 
     """
-
-    __metaclass__ = abc.ABCMeta
 
     error_code_parameter = 100
 
@@ -74,7 +73,7 @@ class BaseService(ErrMixin, ArgMixin):
         pass
 
     def mock_run(self, *args, **kwargs):
-        id(self)
+        id(self), id(args), id(kwargs)
         return 0
 
     @classmethod

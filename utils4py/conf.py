@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import ConfigParser
 import os
+
+from six.moves import configparser
 
 import env
 
@@ -30,7 +31,7 @@ class ConfUtils(object):
         """
             new parser
         """
-        p = ConfigParser.ConfigParser()
+        p = configparser.ConfigParser()
         p.optionxform = lambda x: x
         return p
 

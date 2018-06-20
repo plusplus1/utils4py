@@ -6,16 +6,17 @@ import inspect
 import logging
 
 import flask
+import six
+from six.moves import map, reduce
 
 import utils4py.scan
 
 
+@six.add_metaclass(abc.ABCMeta)
 class BaseFilter(object):
     """
         define flask filter
     """
-
-    __metaclass__ = abc.ABCMeta
 
     def __init__(self, app, **kwargs):
         """
@@ -79,7 +80,7 @@ def init_filters(app, filters=None, paths=None, **kwargs):
                 if cls_id in registered_map:
                     continue
                 cls_filter(app, **kwargs)()
-                str_name = "{}.{}".format(cls_filter.__module__, cls_filter.__name__)
+                str_name = "{}".format(cls_filter.__module__)
                 logging.debug("\tRegistered Filter ok, name = %-50s", str_name)
                 registered_map[id(cls_filter)] = cls_filter
         return

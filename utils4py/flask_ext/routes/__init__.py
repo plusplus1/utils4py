@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import abc
 import inspect
 import logging
 
@@ -40,6 +41,7 @@ def service_route(**kwargs):
     return _
 
 
+@six.add_metaclass(abc.ABCMeta)
 class BaseService(utils4py.service.BaseService):
     """
         Flask base service 
