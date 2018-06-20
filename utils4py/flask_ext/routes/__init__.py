@@ -6,7 +6,7 @@ import inspect
 import logging
 
 import six
-from flask import Flask, g, render_template
+from flask import Flask, current_app, g, render_template
 
 import utils4py
 import utils4py.scan
@@ -82,7 +82,8 @@ def _service_factory(cls):
         return render_template(tpl, **result)
 
     def _(*args, **kwargs):
-        obj = cls(*args, **kwargs)  # type: BaseService
+        logger = getattr(current_app, '_logger', None) or logging
+        obj = cls(logger=logger)  # type: BaseService
         result = obj.execute(*args, **kwargs)
 
         try:
