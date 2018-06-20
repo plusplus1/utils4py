@@ -3,6 +3,7 @@
 
 import json
 import logging
+from threading import RLock
 
 import pymysql
 from pymysql.connections import Connection
@@ -30,6 +31,9 @@ class MySQLAgent(object):
         """
         self._db_args = args
         self._db = None  # type:Connection
+        self._orig_autocommit = None
+        self._mutex = RLock()
+
         self.reconnect()
 
     def __del__(self):
@@ -148,6 +152,46 @@ class MySQLAgent(object):
 
     insert = execute_lastrowid
     insertmany = executemany_lastrowid
+
+    def begin_trans(self):
+        if self._mutex.acquire():
+            try:
+                self._ensure_connected()
+                self._orig_autocommit = self._db.get_autocommit()
+                self._db.begin()
+                return True
+            except:
+                self._mutex.release()
+                raise
+
+        return False
+
+    def commit_trans(self):
+        try:
+            self._db.commit()
+            self._db.autocommit(self._orig_autocommit)
+            self._orig_autocommit = None
+        finally:
+            self._mutex.release()
+
+    def rollback(self):
+        try:
+            self._db.rollback()
+            self._db.autocommit(self._orig_autocommit)
+            self._orig_autocommit = None
+        finally:
+            self._mutex.release()
+
+    def run_in_trans(self, func):
+        if self.begin_trans():
+            try:
+                result = func(self)
+                self.commit_trans()
+                return result
+            except:
+                self.rollback()
+                raise
+        raise Exception("start trans fail")
 
     pass
 
