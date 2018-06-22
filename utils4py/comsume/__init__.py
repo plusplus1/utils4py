@@ -326,6 +326,8 @@ class MultiConsumer(multiprocessing.Process, BasicConsumer):
         BasicConsumer.run(self)
         t.join()
 
+        logging.warn("Consumer quit ok")
+
     pass
 
 
