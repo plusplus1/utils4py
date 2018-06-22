@@ -4,6 +4,8 @@
 import abc
 import logging
 import multiprocessing
+import os
+import signal
 import threading
 import time
 import traceback
@@ -312,6 +314,8 @@ class MultiConsumer(multiprocessing.Process, BasicConsumer):
 
     def run(self):
 
+        logging.info("start sub process = %s", os.getpid())
+
         def _listen():
             while not self.pause and self._pipe:
                 sig = self._pipe.recv()
@@ -326,9 +330,64 @@ class MultiConsumer(multiprocessing.Process, BasicConsumer):
         BasicConsumer.run(self)
         t.join()
 
-        logging.warn("Consumer quit ok")
+        logging.info("sub process = %s, Consumer quit ok ", os.getpid())
 
     pass
+
+
+class Controller(object):
+    """
+        Controller
+    """
+
+    def __init__(self, consume_cls, trace_logger, num=0):
+        self.message_pipe_list = list()
+        self.consumer_list = list()
+        self.pause = False
+        self.consume_cls = consume_cls
+        self.trace_logger = trace_logger
+        self.num = num or multiprocessing.cpu_count()
+
+        signal.signal(signal.SIGINT, self.safe_shutdown)
+        signal.signal(signal.SIGHUP, self.safe_shutdown)
+        signal.signal(signal.SIGTERM, self.safe_shutdown)
+        pass
+
+    def safe_shutdown(self, *args):
+        logging.warn("capture sig = %s ......", args[0])
+        if self.message_pipe_list:
+            for pipe in self.message_pipe_list:
+                pipe.send(MultiConsumer.SIG_STOP)
+        self.pause = True
+        return
+
+    def start(self):
+
+        logging.info("pid  = %s", os.getpid())
+        consumers = list()
+        pipes = list()
+        for i in range(multiprocessing.cpu_count()):
+            p = multiprocessing.Pipe()
+            mc = self.consume_cls(max_loop=0, trace_logger=self.trace_logger, pipe=p[0])
+            mc.daemon = True
+            consumers.append(mc)
+            pipes.append(p[1])
+
+        self.consumer_list = consumers
+        self.message_pipe_list = pipes
+
+        for mc in consumers:
+            mc.start()
+            logging.info("start a consumer")
+
+        # logging.info("pid %s get here ", os.getpid())
+        for mc in consumers:
+            mc.join()
+
+        # logging.info("pid %s right here ", os.getpid())
+        while not self.pause:
+            continue
+        logging.info("process = %d ,quite main ok", os.getpid())
 
 
 pass
