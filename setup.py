@@ -22,10 +22,10 @@ setup(
     ],
     python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*',
     install_requires=[
-        "six>=1.10.0",
+        "six",
         "flask>=1.0.2",
         "PyMySQL>=0.8.1",
-        "redis>=2.10.6",
+        "redis",
         "gevent>=1.2.2"
     ],
     extras_require=extras_require,
