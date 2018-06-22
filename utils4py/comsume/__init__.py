@@ -4,6 +4,7 @@
 import abc
 import logging
 import multiprocessing
+import threading
 import time
 import traceback
 
@@ -302,12 +303,28 @@ class MultiConsumer(multiprocessing.Process, BasicConsumer):
         multi processor
     """
 
+    SIG_STOP = "stop"
+
     def __init__(self, **kwargs):
         multiprocessing.Process.__init__(self)
         BasicConsumer.__init__(self, **kwargs)
+        self._pipe = kwargs.get("pipe", None)
 
     def run(self):
+
+        def _listen():
+            while not self.pause and self._pipe:
+                sig = self._pipe.recv()
+                if sig == self.SIG_STOP:
+                    self.pause = True
+                else:
+                    time.sleep(self.DEFAULT_LOOP_INTERVAL)
+            pass
+
+        t = threading.Thread(target=_listen)
+        t.start()
         BasicConsumer.run(self)
+        t.join()
 
     pass
 
