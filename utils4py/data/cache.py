@@ -9,7 +9,7 @@ import redis.client
 
 from utils4py import ConfUtils, TextUtils
 
-_redis_conf = ConfUtils.load_parser("redis/default.conf")
+_redis_conf = ConfUtils.load_parser("data_source/redis.conf")
 
 
 def connect(section):

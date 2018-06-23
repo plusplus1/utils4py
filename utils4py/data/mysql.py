@@ -12,7 +12,7 @@ from pymysql.err import OperationalError
 
 from utils4py import ConfUtils
 
-_mysql_conf = ConfUtils.load_parser("mysql/default.conf")
+_mysql_conf = ConfUtils.load_parser("data_source/mysql.conf")
 
 
 def connect(section):
