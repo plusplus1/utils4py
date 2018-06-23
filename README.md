@@ -49,7 +49,7 @@
 >>```
 > - 在原redis连接基础上进行代理包装，常用操作自动在将key打上前缀 `xxxxx:`
 
----
+
 ## 4. 服务相关
 ### 4.1） flask服务
 | 模块 | 功能说明 | 使用方法 |
@@ -59,7 +59,8 @@
 | utils4py.flask_ext.routes.BaseService | 所有flask路由具体执行者基类 | 继承此类，并实现抽象方法check_args和run |
 | utils4py.flask_ext.routes.service_route | 路由装饰器 | 对路由具体执行者加上此装饰器，AppServer启动时会扫描route_paths下所有此装饰器注册的路由服务 |
 
----
+
+
 ## 5. 离线相关
 ### 5.1) 多进程消费者
 > 主要模块
