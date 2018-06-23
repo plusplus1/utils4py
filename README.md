@@ -1,24 +1,19 @@
-# utils4py
---- 
+# utils4py 
 整理开发中经常用的一些python工具包，提高生产效率
 
 
----
 ## 1. 调试环境支持
 > - 环境变量IS_DEBUG=1表示调试模式，其他表示生产环境；
 
----
 ## 2. 配置支持
 > - 默认支持python ConfigParser解析，参考 utils4py.ConfUtils
 > - 调试环境下，默认读取 conf_test 目录下配置；
 > - 生产环境下，默认读取 conf 目录下配置；
 
----
 ## 3.数据源相关
 ### 3.1） mysql连接
 > - 默认配置路径 conf(_test)/data_source/mysql.conf
 > - 配置格式
-
 >>```
 >>[xxxxx]
 >>host            =   localhost
@@ -29,21 +24,17 @@
 >>charset         =   utf8
 >>time_zone       =   +8:00
 >>```
-
 > - 使用示例
-
 >>```python
 >>from utils4py.data import connect_mysql
 >>db = connect_mysql("xxxxx")
 >>```
-
 > - 默认自动提交
 > - 事务支持
 
 ### 3.2）redis连接
 > - 默认配置路径 conf(_test)/data_source/redis.conf
 > - 配置格式
-
 >>```
 >>[xxxxx]
 >>host            =   localhost
@@ -51,14 +42,11 @@
 >>password        =   xxx
 >>db              =   0
 >>```
-
 > - 使用示例
-
 >>```python
 >>from utils4py.data import connect_redis
 >>r = connect_redis("xxxxx")
 >>```
-
 > - 在原redis连接基础上进行代理包装，常用操作自动在将key打上前缀 `xxxxx:`
 
 ---
