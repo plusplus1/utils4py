@@ -1,5 +1,9 @@
 # utils4py 
-整理开发中经常用的一些python工具包，提高生产效率
+> 整理开发中经常用的一些python工具包，提高生产效率<br>
+> 安装：
+```bash
+pip install -e git+https://github.com/plusplus1/utils4py.git@v0.1.2#egg=utils4py
+```
 
 
 ## 1. 调试环境支持
