@@ -53,6 +53,23 @@ pip install -e git+https://github.com/plusplus1/utils4py.git@v0.1.2#egg=utils4py
 >>```
 > - 在原redis连接基础上进行代理包装，常用操作自动在将key打上前缀 `xxxxx:`
 
+### 3.3）mongo连接
+> - 默认配置路径 conf(_test)/data_source/mongo.conf
+> - 配置格式
+>>```
+>>[spider:spidermen]
+>>user        =   user
+>>password    =   password
+>>host        =   localhost:27017
+>>db          =   test
+>>params      =   readPreference=secondaryPreferred
+>>```
+> - 使用示例
+>>```python
+>>from utils4py.data import connect_mongo
+>>r = connect_mongo("xxxxx")
+>>```
+
 
 ## 4. 服务相关
 ### 4.1） flask服务
