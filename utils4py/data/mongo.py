@@ -1,17 +1,44 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import threading
+
 import pymongo
 from six.moves.urllib.parse import quote_plus
 
 from utils4py import ConfUtils
 
+settings_reuse_pool = True
+
 _mongo_conf = ConfUtils.load_parser("data_source/mongo.conf")
+
+_conn_pool = dict()
+_reuse_mutex = threading.RLock()
+
+
+def _connect(section):
+    params = _ConnectParams().init_with_section(section)
+    return params.connect()
 
 
 def connect(section):
-    params = _ConnectParams().init_with_section(section)
-    return params.connect()
+    """
+    :param section: 
+    :rtype: pymongo.MongoClient
+    """
+    if settings_reuse_pool:
+        try:
+            _reuse_mutex.acquire()
+            if section in _conn_pool:
+                return _conn_pool[section]
+
+            conn = _connect(section)
+            _conn_pool[section] = conn
+            return conn
+        finally:
+            _reuse_mutex.release()
+    else:
+        return _connect(section)
 
 
 class _ConnectParams(object):
