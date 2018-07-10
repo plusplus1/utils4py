@@ -3,7 +3,8 @@
 
 import threading
 
-import pymongo
+from pymongo import MongoClient
+from pymongo.database import Database
 from six.moves.urllib.parse import quote_plus
 
 from utils4py import ConfUtils
@@ -18,27 +19,28 @@ _reuse_mutex = threading.RLock()
 
 def _connect(section):
     params = _ConnectParams().init_with_section(section)
-    return params.connect()
+    params.connect()
+    return params
 
 
 def connect(section):
     """
     :param section: 
-    :rtype: pymongo.MongoClient
+    :rtype: Database
     """
+
     if settings_reuse_pool:
         try:
             _reuse_mutex.acquire()
-            if section in _conn_pool:
-                return _conn_pool[section]
-
-            conn = _connect(section)
-            _conn_pool[section] = conn
-            return conn
+            if section not in _conn_pool:
+                _conn_pool[section] = _connect(section)
+            params = _conn_pool[section]
+            return params.client.get_database(params.db_name)
         finally:
             _reuse_mutex.release()
     else:
-        return _connect(section)
+        params = _connect(section)
+        return params.client.get_database(params.db_name)
 
 
 class _ConnectParams(object):
@@ -52,7 +54,20 @@ class _ConnectParams(object):
         self._host = ""
         self._db = ""
         self._params = ""
+
+        self._client = ""
         pass
+
+    @property
+    def client(self):
+        """
+        :rtype: MongoClient 
+        """
+        return self._client
+
+    @property
+    def db_name(self):
+        return self._db
 
     def init_with_section(self, section):
         conf = dict(_mongo_conf.items(section=section))
@@ -72,9 +87,13 @@ class _ConnectParams(object):
         if self._params:
             uri = uri + "?" + self._params
         # print uri
-        mgo = pymongo.MongoClient(uri)
-        return mgo.get_database(self._db)
+        self._client = MongoClient(uri)
+        return self._client
 
+    # def __del__(self):
+    #     if self.client:
+    #         self.client.close()
+    #         self._client = None
     pass
 
 
