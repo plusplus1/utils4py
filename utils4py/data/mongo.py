@@ -87,7 +87,7 @@ class _ConnectParams(object):
         if self._params:
             uri = uri + "?" + self._params
         # print uri
-        self._client = MongoClient(uri)
+        self._client = MongoClient(uri, unicode_decode_error_handler='ignore')
         return self._client
 
     # def __del__(self):
