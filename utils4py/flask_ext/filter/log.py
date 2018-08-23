@@ -32,7 +32,7 @@ class Filter(BaseFilter):
         g.req_timer = {'start': time.time(), 'end': 0, 'cost': 0, }
 
         g.method = request.method
-        g.path = request.full_path
+        g.path = request.path
         g.remote_ip = request.headers.environ.get("HTTP_X_FORWARDED_FOR", request.remote_addr)
 
         params = dict()

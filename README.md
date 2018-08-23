@@ -57,7 +57,7 @@ pip install -e git+https://github.com/plusplus1/utils4py.git@v0.1.2#egg=utils4py
 > - 默认配置路径 conf(_test)/data_source/mongo.conf
 > - 配置格式
 >>```
->>[spider:spidermen]
+>>[xxxxx]
 >>user        =   user
 >>password    =   password
 >>host        =   localhost:27017
