@@ -24,7 +24,7 @@ class Filter(BaseFilter):
         """
         return "\t".join(map(
             lambda x: "{}={}".format(*x),
-            [(k, TextUtils.to_string(v)) for k, v in iteritems(kv_log)]
+            [(k, TextUtils.to_string(kv_log[k])) for k in sorted(kv_log.keys())]
         ))
 
     def before_request(self, *args, **kwargs):
