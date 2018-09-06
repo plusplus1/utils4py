@@ -49,6 +49,11 @@ class AppServer(object):
 
     def run(self, port):
         logging.info("Start server, port=%s, debug=%s", port, self._debug)
+        self.app.run(host='0.0.0.0', port=port)
+        pass
+
+    def run_wsgi(self, port):
+        logging.info("Start wsgi server, port=%s, debug=%s", port, self._debug)
         server = WSGIServer(('', port), self.app)
         server.serve_forever()
 

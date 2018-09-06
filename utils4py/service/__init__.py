@@ -8,6 +8,7 @@ import traceback
 from six import add_metaclass, iteritems
 
 import utils4py
+from utils4py.errors import SimpleError
 from utils4py.mixin import ArgMixin, ErrMixin
 
 
@@ -51,13 +52,12 @@ class BaseService(ErrMixin, ArgMixin):
 
     @property
     def logger(self):
-        return self._logger
+        return self._logger or logging
 
     @abc.abstractmethod
     def run(self, *args, **kwargs):
         pass
 
-    @abc.abstractmethod
     def check_args(self, *args, **kwargs):
         pass
 
@@ -70,7 +70,15 @@ class BaseService(ErrMixin, ArgMixin):
         return result
 
     def init(self, *args, **kwargs):
-        self.check_args(*args, **kwargs)
+        if 'logger' in kwargs:
+            self._logger = kwargs.get('logger') or logging
+
+        try:
+            self.check_args(*args, **kwargs)
+        except Exception as err:
+            if isinstance(err, SimpleError):
+                raise err
+            raise self.build_parameter_error(str(err))
 
     def execute(self, *args, **kwargs):
 
@@ -78,12 +86,14 @@ class BaseService(ErrMixin, ArgMixin):
             self.init(*args, **kwargs)
             result, appends = None, None
 
-            if utils4py.env.is_debug():
-                r = self.mock_run(*args, **kwargs)  # pylint: disable=E1111
-                if not r:
-                    r = self.run(*args, **kwargs)
-            else:
+            r = None
+            for _ in range(0, 1):
+                if utils4py.env.is_debug():
+                    r = self.mock_run(*args, **kwargs)  # pylint: disable=E1111
+                    if r:
+                        break
                 r = self.run(*args, **kwargs)
+                break
 
             if r and isinstance(r, tuple):
                 result = r[0] if len(r) > 0 else None
