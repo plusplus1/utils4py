@@ -12,10 +12,9 @@ from six import iteritems
 from utils4py.s import TextUtils
 
 _error_map = dict({
-    "100" : "参数错误",
-    "104" : "安全检查错误",
-
-    "1010": "内部错误",
+    "101"  : "参数错误",
+    "104"  : "安全检查错误",
+    "-1000": "内部错误",
 })
 
 
@@ -71,7 +70,7 @@ class SimpleError(Exception):
 
 class ParamError(SimpleError):  # 参数错误
 
-    def __init__(self, code=100, message=None):
+    def __init__(self, code=101, message=None):
         SimpleError.__init__(self, code, message)
 
     pass

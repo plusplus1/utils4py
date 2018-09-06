@@ -83,7 +83,12 @@ def _service_factory(cls):
 
     def _(*args, **kwargs):
         logger = getattr(current_app, '_logger', None) or logging
-        obj = cls(logger=logger)  # type: BaseService
+        try:
+            obj = cls(logger=logger)  # type: BaseService
+        except:
+            obj = cls()  # type: BaseService
+
+        kwargs['logger'] = logger
         result = obj.execute(*args, **kwargs)
 
         try:
