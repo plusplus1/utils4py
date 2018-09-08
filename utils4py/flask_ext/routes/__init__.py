@@ -174,7 +174,7 @@ def init_routes(app, paths):
 
             app.route(str_route, endpoint=str_endpoint, methods=methods)(_service_factory(s_cls))
 
-            logging.debug("\tRegister Service ok, route = %-35s , endpoint=%s ", str_route, str_endpoint)
+            logging.info("\t\tRegister Service ok, route = %-35s , endpoint=%s ", str_route, str_endpoint)
             registered_map[id(s_cls)] = s_cls
             pass
 
@@ -183,7 +183,7 @@ def init_routes(app, paths):
     if paths and isinstance(paths, list):
         _ = [_register(p) for p in paths]
 
-    logging.info("\tRegistered %d services", len(registered_map))
+    logging.info("\t==>Registered %d services", len(registered_map))
     return
 
 
