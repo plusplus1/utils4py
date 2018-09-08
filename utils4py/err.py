@@ -16,7 +16,7 @@ class ErrUtils(object):
     err_code_unknown = -1000  # unknown error
 
     @classmethod
-    def build_error(cls, code, message):
+    def build_error(cls, code, message=None):
         return SimpleError(code, message)
 
     @classmethod

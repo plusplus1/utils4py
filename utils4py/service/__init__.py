@@ -44,8 +44,6 @@ class BaseService(ErrMixin, ArgMixin):
         base service 
     """
 
-    error_code_parameter = 100
-
     def __init__(self, **kwargs):
         self._logger = kwargs.get('logger') or logging
         pass
