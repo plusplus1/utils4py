@@ -14,7 +14,7 @@ class ArgsChecker(object):
          basic arg format checker
     """
 
-    _dt_format = "'%Y-%m-%d %H:%M:%S'"
+    _dt_format = "%Y-%m-%d %H:%M:%S"
 
     @classmethod
     def is_valid_phone(cls, phone):
