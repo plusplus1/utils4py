@@ -18,7 +18,7 @@ class Filter(BaseFilter):
 
     @classmethod
     def _format_kv(cls, kv_log):
-        """ 
+        """
         :param kv_log:
         :return:
         """
@@ -41,20 +41,13 @@ class Filter(BaseFilter):
 
         if request.data:
             try:
-                json_req_data = json.loads(request.data)
-                for _ in range(0, 1):
-                    if not json_req_data:
-                        break
-
-                    request.data = json_req_data
-                    if not isinstance(json_req_data, dict):
-                        break
-                    params.update(json_req_data)
-                    break
+                json_params = request.get_json()
+                if not json_params:
+                    json_params = json.loads(request.get_data())
+                if json_params and isinstance(json_params, dict):
+                    params.update(json_params)
+            except (Exception,):
                 pass
-            except ValueError:
-                pass
-            pass
 
         g.params = params
         g.code = 0
@@ -66,11 +59,11 @@ class Filter(BaseFilter):
         g.req_timer['cost'] = round(1000 * (g.req_timer['end'] - g.req_timer['start']), 2)
 
         log_data = {
-            'method'   : g.method,
+            'method': g.method,
             'remote_ip': g.remote_ip,
-            'path'     : g.path,
-            'code'     : g.code,
-            'cost'     : g.req_timer['cost'],
+            'path': g.path,
+            'code': g.code,
+            'cost': g.req_timer['cost'],
         }
         if g.kv_log and isinstance(g.kv_log, dict):
             for k, v in g.kv_log.items():
