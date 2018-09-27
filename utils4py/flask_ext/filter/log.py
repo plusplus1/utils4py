@@ -5,7 +5,6 @@ import json
 import time
 
 from flask import g, request
-from six import iteritems
 
 from utils4py import TextUtils
 from utils4py.flask_ext.filter import BaseFilter
@@ -15,6 +14,8 @@ class Filter(BaseFilter):
     """
         Log filters
     """
+
+    IGNORE_LOG_REQUEST_PATH = set([])
 
     @classmethod
     def _format_kv(cls, kv_log):
@@ -55,15 +56,20 @@ class Filter(BaseFilter):
         return
 
     def after_request(self, *args, **kwargs):
+
+        path = g.path
+        if path and self.IGNORE_LOG_REQUEST_PATH and path in self.IGNORE_LOG_REQUEST_PATH:
+            return
+
         g.req_timer['end'] = time.time()
         g.req_timer['cost'] = round(1000 * (g.req_timer['end'] - g.req_timer['start']), 2)
 
         log_data = {
-            'method': g.method,
+            'method'   : g.method,
             'remote_ip': g.remote_ip,
-            'path': g.path,
-            'code': g.code,
-            'cost': g.req_timer['cost'],
+            'path'     : g.path,
+            'code'     : g.code,
+            'cost'     : g.req_timer['cost'],
         }
         if g.kv_log and isinstance(g.kv_log, dict):
             for k, v in g.kv_log.items():
