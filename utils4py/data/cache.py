@@ -12,7 +12,7 @@ from utils4py import ConfUtils, TextUtils
 
 _redis_conf = ConfUtils.load_parser("data_source/redis.conf")
 
-settings_reuse_pool = False
+settings_reuse_pool = True
 _conn_pool = dict()
 _reuse_mutex = threading.RLock()
 
