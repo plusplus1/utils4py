@@ -3,6 +3,7 @@
 
 import copy
 import json
+import threading
 
 import redis
 import redis.client
@@ -11,10 +12,26 @@ from utils4py import ConfUtils, TextUtils
 
 _redis_conf = ConfUtils.load_parser("data_source/redis.conf")
 
+settings_reuse_pool = False
+_conn_pool = dict()
+_reuse_mutex = threading.RLock()
+
 
 def connect(section):
-    params = _ConnectParams().init_with_section(section)
-    return params.connect()
+    if settings_reuse_pool:
+        _reuse_mutex.acquire()
+        try:
+            conn = _conn_pool.get(section, None)
+            if not conn:
+                conn = _ConnectParams().init_with_section(section).connect()
+                if conn:
+                    _conn_pool[section] = conn
+            return conn
+        finally:
+            _reuse_mutex.release()
+    else:
+        params = _ConnectParams().init_with_section(section)
+        return params.connect()
 
 
 class _RedisWrapper(object):
@@ -43,6 +60,11 @@ class _RedisWrapper(object):
             wm = self._wrapper_tuple_args(getattr(self._client, m))
             setattr(self, m, wm)
 
+        pass
+
+    def __del__(self):
+        if self._client is not None:
+            del self._client
         pass
 
     def ping(self):
@@ -118,11 +140,9 @@ class _ConnectParams(object):
         :return: 
         :rtype: redis.Redis
         """
-
         conn = redis.Redis(**self._params)
         if conn.ping():
             return _RedisWrapper(conn, self._section)
-
         return None
 
     def __str__(self):
