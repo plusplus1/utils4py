@@ -39,76 +39,51 @@ class _RedisWrapper(object):
         Redis
     """
 
-    _method_groups_1 = ['hexists', 'decr', 'exists', 'expire', 'get',
+    _method_groups_1 = {'hexists', 'decr', 'exists', 'expire', 'get',
                         'getset', 'hdel', 'hget', 'hgetall', 'hkeys',
                         'hlen', 'hmget', 'hmset', 'hset', 'hsetnx',
                         'incr', 'keys', 'llen', 'lpop', 'lpush', 'lrange', 'lindex',
                         'rpop', 'rpush', 'sadd', 'set', 'setex', 'setnx',
-                        'sismember', 'smembers', 'srem', 'ttl', 'type', ]
+                        'sismember', 'smembers', 'srem', 'ttl', 'type', }
 
-    _method_groups_2 = ["delete", "mget"]
+    _method_groups_2 = {"delete", "mget"}
 
     def __init__(self, client, key_prefix):
         self._client = client  # type:redis.Redis
         self._key_prefix = key_prefix  # type:str
 
-        for m in self._method_groups_1:
-            wm = self._wrapper_str_args(getattr(self._client, m))
-            setattr(self, m, wm)
+    def __getattr__(self, item):
+        try:
+            assert item in self._method_groups_1 or item in self._method_groups_2
+            method = getattr(self._client, item)
+            assert method
+        except:
+            raise AttributeError(item)
 
-        for m in self._method_groups_2:
-            wm = self._wrapper_tuple_args(getattr(self._client, m))
-            setattr(self, m, wm)
+        if item in self._method_groups_1:
+            def _inner(*args, **kwargs):
+                arg_lst = list(args)
+                a0 = self.make_key(arg_lst[0])
+                arg_lst[0] = a0
+                return method(*tuple(arg_lst), **kwargs)
+        else:
+            def _inner(*args, **kwargs):
+                arg_lst = list(args)
+                a0 = arg_lst[0]
+                a_els = arg_lst[1:]
+                a_new = list(map(
+                    self.make_key,
+                    redis.client.list_or_args(a0, a_els)
+                ))
+                return method(*tuple(a_new), **kwargs)
 
-        pass
-
-    def __del__(self):
-        if self._client is not None:
-            del self._client
-        pass
+        return _inner
 
     def ping(self):
         return self._client.ping()
 
     def make_key(self, key):
         return "{}:{}".format(self._key_prefix, key)
-
-    def _wrapper_str_args(self, func):
-        """
-
-        :param func: 
-        :return: 
-        """
-
-        def _inner(*args, **kwargs):
-            arg_list = list(args)
-            arg_list[0] = self.make_key(arg_list[0])
-            return func(*tuple(arg_list), **kwargs)
-
-        return _inner
-
-    def _wrapper_tuple_args(self, func):
-        """
-
-        :param func: 
-        :return: 
-        """
-
-        def _inner(*args, **kwargs):
-            arg_list = list(args)
-            arg0 = arg_list[0]
-            arg_else = arg_list[1:]
-
-            new_args = map(
-                lambda x: self.make_key(x),
-                redis.client.list_or_args(arg0, arg_else)
-            )
-
-            return func(*tuple(new_args), **kwargs)
-
-        return _inner
-
-    pass
 
 
 class _ConnectParams(object):
