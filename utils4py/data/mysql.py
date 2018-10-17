@@ -2,198 +2,33 @@
 # -*- coding: utf-8 -*-
 
 import json
-import logging
-from threading import RLock
+import threading
 
-import pymysql
-from pymysql.connections import Connection
-from pymysql.cursors import Cursor, DictCursor
-from pymysql.err import OperationalError
+from pymysql.cursors import DictCursor
 
 from utils4py import ConfUtils
+from utils4py.pymysql_pool import Pool, SqlShell
 
 _mysql_conf = ConfUtils.load_parser("data_source/mysql.conf")
 
-
-def connect(section):
-    params = _ConnectParams().init_with_section(section)
-    return MySQLAgent(params)
+_conn_pool = dict()
+_conn_mutex = threading.RLock()
 
 
-class MySQLAgent(object):
+def connect_pool(section):
     """
-        MySQL Agent
+    :param section: 
+    :rtype: SqlShell 
     """
+    with _conn_mutex:
+        if section not in _conn_pool:
+            params = _ConnectParams().init_with_section(section).get_connect_params()
+            _conn_pool[section] = Pool(**params)
 
-    def __init__(self, args):
-        """
-        :param _ConnectParams args: 
-        """
-        self._db_args = args
-        self._db = None  # type:Connection
-        self._orig_autocommit = None
-        self._mutex = RLock()
+        return SqlShell(_conn_pool[section])
 
-        self.reconnect()
 
-    def __del__(self):
-        self.close()
-
-    def close(self):
-        if self._db is not None:
-            self._db.close()
-            self._db = None
-
-    def reconnect(self):
-        """Closes the existing database connection and re-opens it."""
-        self.close()
-        self._db = self._db_args.connect()
-
-    def _ensure_connected(self):
-        if self._db is None:
-            self.reconnect()
-
-    def _cursor(self):
-        self._ensure_connected()
-        return self._db.cursor()
-
-    def _execute(self, cursor, query, *args, **kwargs):
-        """
-        :param Cursor cursor: 
-        :param str query: 
-        :return: 
-        """
-        try:
-            return cursor.execute(query, kwargs or args)
-        except OperationalError:
-            logging.error("Error connecting to MySQL on %s", self._db_args.host)
-            self.close()
-            raise
-
-    def query(self, query, *args, **kwargs):
-        cursor = self._cursor()
-        try:
-            self._execute(cursor, query, *args, **kwargs)
-            return [row for row in cursor]
-        finally:
-            cursor.close()
-
-    def get(self, query, *parameters, **kwparameters):
-        """Returns the (singular) row returned by the given query.
-
-        If the query has no results, returns None.  If it has
-        more than one result, raises an exception.
-        """
-        rows = self.query(query, *parameters, **kwparameters)
-        if not rows:
-            return None
-        elif len(rows) > 1:
-            raise Exception("Multiple rows returned for Database.get() query")
-        else:
-            return rows[0]
-
-    # rowcount is a more reasonable default return value than lastrowid,
-    # but for historical compatibility execute() must return lastrowid.
-    def execute(self, query, *parameters, **kwparameters):
-        """Executes the given query, returning the lastrowid from the query."""
-        return self.execute_lastrowid(query, *parameters, **kwparameters)
-
-    def execute_lastrowid(self, query, *parameters, **kwparameters):
-        """Executes the given query, returning the lastrowid from the query."""
-        cursor = self._cursor()
-        try:
-            self._execute(cursor, query, *parameters, **kwparameters)
-            return cursor.lastrowid
-        finally:
-            cursor.close()
-
-    def execute_rowcount(self, query, *parameters, **kwparameters):
-        """Executes the given query, returning the rowcount from the query."""
-        cursor = self._cursor()
-        try:
-            self._execute(cursor, query, *parameters, **kwparameters)
-            return cursor.rowcount
-        finally:
-            cursor.close()
-
-    def executemany(self, query, parameters):
-        """Executes the given query against all the given param sequences.
-
-        We return the lastrowid from the query.
-        """
-        return self.executemany_lastrowid(query, parameters)
-
-    def executemany_lastrowid(self, query, parameters):
-        """Executes the given query against all the given param sequences.
-
-        We return the lastrowid from the query.
-        """
-        cursor = self._cursor()
-        try:
-            cursor.executemany(query, parameters)
-            return cursor.lastrowid
-        finally:
-            cursor.close()
-
-    def executemany_rowcount(self, query, parameters):
-        """Executes the given query against all the given param sequences.
-
-        We return the rowcount from the query.
-        """
-        cursor = self._cursor()
-        try:
-            cursor.executemany(query, parameters)
-            return cursor.rowcount
-        finally:
-            cursor.close()
-
-    update = execute_rowcount
-    updatemany = executemany_rowcount
-
-    insert = execute_lastrowid
-    insertmany = executemany_lastrowid
-
-    def begin_trans(self):
-        if self._mutex.acquire():
-            try:
-                self._ensure_connected()
-                self._orig_autocommit = self._db.get_autocommit()
-                self._db.begin()
-                return True
-            except:
-                self._mutex.release()
-                raise
-
-        return False
-
-    def commit_trans(self):
-        try:
-            self._db.commit()
-            self._db.autocommit(self._orig_autocommit)
-            self._orig_autocommit = None
-        finally:
-            self._mutex.release()
-
-    def rollback(self):
-        try:
-            self._db.rollback()
-            self._db.autocommit(self._orig_autocommit)
-            self._orig_autocommit = None
-        finally:
-            self._mutex.release()
-
-    def run_in_trans(self, func):
-        if self.begin_trans():
-            try:
-                result = func(self)
-                self.commit_trans()
-                return result
-            except:
-                self.rollback()
-                raise
-        raise Exception("start trans fail")
-
-    pass
+connect = connect_pool
 
 
 class _ConnectParams(object):
@@ -250,31 +85,24 @@ class _ConnectParams(object):
         self._charset = str.strip(items.get('charset', 'utf8'))
         return self
 
-    def connect(self):
-        """
-        :return: 
-        :rtype: Connection
-        """
-
+    def get_connect_params(self):
         time_zone = self.time_zone
         init_command = None
         if time_zone:
             init_command = 'SET time_zone = "%s"' % time_zone
 
-        conn = pymysql.connect(host=self.host,
-                               port=self.port,
-                               database=self.db,
-                               user=self.user,
-                               password=self.password,
-                               use_unicode=True,
-                               autocommit=True,
-                               init_command=init_command,
-                               charset=self.charset,
-                               sql_mode="TRADITIONAL",
-                               cursorclass=DictCursor,
-                               )
-
-        return conn
+        return dict(host=self.host,
+                    port=self.port,
+                    database=self.db,
+                    user=self.user,
+                    password=self.password,
+                    use_unicode=True,
+                    autocommit=True,
+                    init_command=init_command,
+                    charset=self.charset,
+                    sql_mode="TRADITIONAL",
+                    cursorclass=DictCursor,
+                    )
 
     def __str__(self):
         return json.dumps({'host'     : self.host,

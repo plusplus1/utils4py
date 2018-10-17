@@ -1,11 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#
-# Copyright (c) 2018 yongqianbao.com, Inc. All Rights Reserved
-#
-# @file     : __init__.py.py
-# @author   : chengyunlai
-# @time     : 2018/09/06 10:28:46
 
 from six import iteritems
 

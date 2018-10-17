@@ -19,16 +19,13 @@ _reuse_mutex = threading.RLock()
 
 def connect(section):
     if settings_reuse_pool:
-        _reuse_mutex.acquire()
-        try:
+        with _reuse_mutex:
             conn = _conn_pool.get(section, None)
             if not conn:
                 conn = _ConnectParams().init_with_section(section).connect()
                 if conn:
                     _conn_pool[section] = conn
             return conn
-        finally:
-            _reuse_mutex.release()
     else:
         params = _ConnectParams().init_with_section(section)
         return params.connect()

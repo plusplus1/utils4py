@@ -17,30 +17,20 @@ _conn_pool = dict()
 _reuse_mutex = threading.RLock()
 
 
-def _connect(section):
-    params = _ConnectParams().init_with_section(section)
-    params.connect()
-    return params
-
-
 def connect(section):
     """
     :param section: 
     :rtype: Database
     """
-
     if settings_reuse_pool:
-        try:
-            _reuse_mutex.acquire()
+        with _reuse_mutex:
             if section not in _conn_pool:
-                _conn_pool[section] = _connect(section)
-            params = _conn_pool[section]
-            return params.client.get_database(params.db_name)
-        finally:
-            _reuse_mutex.release()
+                db_obj = _ConnectParams().init_with_section(section).connect()
+                if db_obj:
+                    _conn_pool[section] = db_obj
+            return _conn_pool[section]
     else:
-        params = _connect(section)
-        return params.client.get_database(params.db_name)
+        return _ConnectParams().init_with_section(section).connect()
 
 
 class _ConnectParams(object):
@@ -57,13 +47,6 @@ class _ConnectParams(object):
 
         self._client = ""
         pass
-
-    @property
-    def client(self):
-        """
-        :rtype: MongoClient 
-        """
-        return self._client
 
     @property
     def db_name(self):
@@ -86,14 +69,10 @@ class _ConnectParams(object):
         uri = "%s/%s" % (uri, self._db)
         if self._params:
             uri = uri + "?" + self._params
-        # print uri
-        self._client = MongoClient(uri, unicode_decode_error_handler='ignore')
-        return self._client
 
-    # def __del__(self):
-    #     if self.client:
-    #         self.client.close()
-    #         self._client = None
+        client = MongoClient(uri, unicode_decode_error_handler='ignore')
+        return client.get_database(self.db_name)
+
     pass
 
 
