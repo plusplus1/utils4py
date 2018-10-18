@@ -17,7 +17,6 @@ class Connection(pymysql.connections.Connection):
     def __init__(self, **kwargs):
         pymysql.connections.Connection.__init__(self, **kwargs)
         self.pid = 0
-        self.trans_lock = threading.RLock()
 
     def __del__(self):
         try:

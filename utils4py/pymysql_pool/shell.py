@@ -120,27 +120,16 @@ class SqlShell(BaseShell):
     def __init__(self, pool):
         self._pool = pool  # type: Pool
         self._connection = None  # type:Connection
-        self._original_autocommit = None
-        self._in_trans = False
 
     def _reset(self, reusable=None):
         if not self._connection:
             return
-
-        if self._in_trans:
-            return
-
         log_debug("_result in shell, conn = %s, reusable = %s", self._connection, reusable)
-
         if self._pool:
             can_reuse = False if reusable is False else True
-            if can_reuse and self._original_autocommit is not None:
-                self._connection.autocommit(self._original_autocommit)
             self._pool.release(self._connection, can_reuse=can_reuse)
 
         self._connection = None
-        self._original_autocommit = None
-
         return
 
     def __enter__(self):
@@ -149,19 +138,6 @@ class SqlShell(BaseShell):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        try:
-            if self._in_trans:
-                if exc_val:
-                    self.rollback()
-                else:
-                    self.commit()
-        except Exception as err:
-            log_error("commit trans fail, error = %s", err)
-            if self._in_trans:
-                self._in_trans = False
-            self._reset(False)
-            pass
-
         self._reset(self.is_reusable_error(exc_val))
         log_debug("+++ exit Sql Shell")
         pass
@@ -176,46 +152,95 @@ class SqlShell(BaseShell):
         """
         if not self._connection:
             self._connection = self._pool.get_connection()
-            self._original_autocommit = self._connection.get_autocommit()
         return self._connection.cursor()
 
-    def begin(self):
-        if not self._connection:
-            with self.cursor():
-                pass
-
-        self._connection.autocommit(False)
-        self._connection.begin()
-        self._in_trans = True
-        return self
-
-    def commit(self):
-        if not self._connection:
-            return
-
-        log_debug(" --- commit trans ")
-
-        try:
-            self._connection.commit()
-        finally:
-            self._in_trans = False
-            if self._original_autocommit is not None:
-                self._connection.autocommit(self._original_autocommit)
-
-    def rollback(self):
-        if not self._connection:
-            return
-
-        log_debug(" --- rollback trans")
-
-        try:
-            self._connection.rollback()
-        finally:
-            self._in_trans = False
-            if self._original_autocommit is not None:
-                self._connection.autocommit(self._original_autocommit)
+    def begin_trans(self):
+        return _TransactionSqlShell(self._pool)
 
     pass
+
+
+class _TransactionSqlShell(BaseShell):
+    """trans shell"""
+
+    def __init__(self, pool):
+        self._pool = pool  # type:Pool
+        self._connection = self._pool.get_connection()
+        self._original_autocommit = self._connection.get_autocommit()
+        self._connection.autocommit(False)
+
+        self._committed = False  # by default, transaction is not committed
+        self._can_reuse = True  # by default, connection can be reused
+        self._started = False
+        pass
+
+    def _reset(self, reusable=None):
+        if not self._can_reuse:  # if connection is already unusable, return directly
+            return
+        if reusable is False:
+            self._can_reuse = False
+        return
+
+    def cursor(self):
+        return self._connection.cursor()
+
+    def _execute(self, cursor, query, *args, **kwargs):
+        if not self._started:
+            raise Exception('transaction is not begin')
+        return super(_TransactionSqlShell, self)._execute(cursor, query, *args, **kwargs)
+
+    def _execute_many(self, cursor, query, args):
+        if not self._started:
+            raise Exception('transaction is not begin')
+        return super(_TransactionSqlShell, self)._execute_many(cursor, query, args)
+
+    def __enter__(self):  # start transaction
+        if self._started:
+            raise Exception('you should not start transaction repeated')
+
+        self._connection.begin()
+        self._started = True
+
+        log_debug("=== start transaction ok")
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):  # commit transaction and release connection
+        try:
+            if exc_val:
+                self._connection.rollback()
+            else:
+                self._connection.commit()
+
+            if self._original_autocommit is not None:
+                self._connection.autocommit(self._original_autocommit)
+
+            log_debug(" === end transaction ok")
+        except Exception as err:
+            self._reset(self.is_reusable_error(err))
+            log_debug(" === end transaction failed")
+
+        self._reset(self.is_reusable_error(exc_val))
+
+        try:
+            self._pool.release(self._connection, self._can_reuse)
+        finally:
+            self._connection = None
+            self._pool = None
+            self._committed = True
+        return
+
+    def __del__(self):
+        try:
+            if self._pool and self._connection:
+                if self._original_autocommit is not None:
+                    self._connection.autocommit(self._original_autocommit)
+                self._pool.release(self._connection, self._can_reuse)
+        except (Exception,):
+            pass
+
+        self._pool = None
+        self._connection = None
+        return
 
 
 pass
