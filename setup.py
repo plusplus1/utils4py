@@ -3,7 +3,7 @@ from setuptools import find_packages, setup
 extras_require = {}
 
 NAME = "utils4py"
-VERSION = "0.1.8"
+VERSION = "0.1.9"
 
 setup(
     name=NAME,

@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import datetime
+import decimal
+import hashlib
 import json
 
 import six
@@ -18,6 +20,8 @@ class TextUtils(object):
         """
 
         def default(self, o):  # pylint: disable=E0202
+            if isinstance(o, decimal.Decimal):
+                return float(o)
             if isinstance(o, datetime.datetime):
                 return o.strftime('%Y-%m-%d %H:%M:%S')
             if isinstance(o, datetime.date):
@@ -39,17 +43,34 @@ class TextUtils(object):
         return str(value)
 
     @classmethod
-    def json_dumps(cls, val, indent=None, encoder_cls=None):
-        e_cls = encoder_cls if encoder_cls else cls._JSONEncoder
-        if isinstance(indent, six.integer_types):
-            return json.dumps(val, indent=indent, cls=e_cls)
-        return json.dumps(val, cls=e_cls)
+    def json_dumps(cls, val, indent=None, encoder_cls=None, separators=None, ensure_ascii=None, sort_keys=None):
+        kwargs = {'cls': encoder_cls if encoder_cls else cls._JSONEncoder}
+        if isinstance(indent, six.integer_types) and indent > 0:
+            kwargs['indent'] = indent
+        if ensure_ascii is not None:
+            kwargs['ensure_ascii'] = ensure_ascii
+
+        if sort_keys is not None:
+            kwargs['sort_keys'] = sort_keys
+
+        if separators is not None:
+            kwargs['separators'] = separators
+        else:
+            kwargs['separators'] = (',', ':')
+
+        return json.dumps(val, **kwargs)
 
     @classmethod
     def json_loads(cls, val):
         if isinstance(val, six.string_types):
             return json.loads(val)
         return json.load(val)
+
+    @classmethod
+    def md5_string(cls, val):
+        if isinstance(val, six.text_type):
+            return hashlib.md5(val.encode('utf8')).hexdigest()
+        return hashlib.md5(val).hexdigest()
 
     pass
 
