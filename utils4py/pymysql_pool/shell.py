@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import abc
+import time
 
 import pymysql.err
 from pymysql.cursors import DictCursor
@@ -152,7 +153,13 @@ class SqlShell(BaseShell):
         """
         if not self._connection:
             self._connection = self._pool.get_connection()
-        return self._connection.cursor()
+
+        if time.time() - self._connection.last_use_time > self._connection.max_idle_time:
+            self._connection.ping(reconnect=True)
+
+        c = self._connection.cursor()
+        self._connection.last_use_time = time.time()
+        return c
 
     def begin_trans(self):
         return _TransactionSqlShell(self._pool)
@@ -182,7 +189,9 @@ class _TransactionSqlShell(BaseShell):
         return
 
     def cursor(self):
-        return self._connection.cursor()
+        c = self._connection.cursor()
+        self._connection.last_use_time = time.time()
+        return c
 
     def _execute(self, cursor, query, *args, **kwargs):
         if not self._started:

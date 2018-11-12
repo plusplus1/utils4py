@@ -3,26 +3,30 @@
 
 import os
 import threading
+import time
 from itertools import chain
 
-import pymysql
-import pymysql.connections
+from pymysql.connections import Connection as _Connection
 
 from utils4py.pymysql_pool.log import *
 
 
-class Connection(pymysql.connections.Connection):
+class Connection(_Connection):
     """Connection"""
 
     def __init__(self, **kwargs):
-        pymysql.connections.Connection.__init__(self, **kwargs)
+        self.last_use_time = 0
+        self.max_idle_time = kwargs.get('max_idle_time', 5400)  # default server wait_timeout
+        super(Connection, self).__init__(**{
+            k: v for k, v in kwargs.items() if k != 'max_idle_time'
+        })
         self.pid = 0
+        pass
 
-    def __del__(self):
-        try:
-            self._force_close()
-        except Exception as err:
-            log_error("close connection error, %s, %s", self, err)
+    def connect(self, sock=None):
+        r = super(Connection, self).connect(sock=sock)
+        self.last_use_time = time.time()
+        return r
 
     pass
 
@@ -71,7 +75,9 @@ class Pool(object):
         self.check_pid()
 
         try:
-            conn = self._available_connections.pop()
+            conn = self._available_connections.pop()  # type:Connection
+            if time.time() - conn.last_use_time > conn.max_idle_time:
+                conn.ping(reconnect=True)
         except IndexError:
             conn = self.make_connection()
 

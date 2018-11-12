@@ -44,6 +44,8 @@ class _ConnectParams(object):
         self._db = ""
         self._time_zone = "+8:00"
         self._charset = 'utf8'
+        self._max_idle_time = 7 * 3600
+
         pass
 
     @property
@@ -83,6 +85,7 @@ class _ConnectParams(object):
         self._db = str.strip(items.get('db', ""))
         self._time_zone = str.strip(items.get('time_zone', '+8:00'))
         self._charset = str.strip(items.get('charset', 'utf8'))
+        self._max_idle_time = int(items.get('max_idle_time', 7 * 3600))
         return self
 
     def get_connect_params(self):
@@ -100,18 +103,20 @@ class _ConnectParams(object):
                     autocommit=True,
                     init_command=init_command,
                     charset=self.charset,
-                    sql_mode="TRADITIONAL",
+                    # sql_mode="TRADITIONAL",
                     cursorclass=DictCursor,
+                    max_idle_time=self._max_idle_time,
                     )
 
     def __str__(self):
-        return json.dumps({'host'     : self.host,
-                           'port'     : self.port,
-                           'database' : self.db,
-                           'user'     : self.user,
-                           'password' : self.password,
-                           'time_zone': self.time_zone,
-                           'charset'  : self.charset,
+        return json.dumps({'host'         : self.host,
+                           'port'         : self.port,
+                           'database'     : self.db,
+                           'user'         : self.user,
+                           'password'     : self.password,
+                           'time_zone'    : self.time_zone,
+                           'charset'      : self.charset,
+                           'max_idle_time': self._max_idle_time,
                            })
 
     pass
