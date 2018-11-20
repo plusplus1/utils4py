@@ -103,7 +103,6 @@ class _ConnectParams(object):
                     autocommit=True,
                     init_command=init_command,
                     charset=self.charset,
-                    # sql_mode="TRADITIONAL",
                     cursorclass=DictCursor,
                     max_idle_time=self._max_idle_time,
                     )

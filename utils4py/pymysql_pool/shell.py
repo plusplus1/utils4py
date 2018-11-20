@@ -7,8 +7,12 @@ import time
 import pymysql.err
 from pymysql.cursors import DictCursor
 
-from utils4py.pymysql_pool.log import *
+from utils4py.pymysql_pool.log import get_logger
 from utils4py.pymysql_pool.pool import Connection, Pool
+
+logger = get_logger()
+
+LOG_SQL_STATEMENT = False
 
 
 class MultipleRowsError(pymysql.err.DataError):
@@ -51,6 +55,9 @@ class BaseShell(object):
         :return: 
         """
         try:
+            if LOG_SQL_STATEMENT:
+                logger.info("\t[Sql Statement] sql = %s, args = %s", query, kwargs or args)
+
             return cursor.execute(query, kwargs or args)
         except Exception as err:
             self._reset(self.is_reusable_error(err))
@@ -64,6 +71,9 @@ class BaseShell(object):
         :return: 
         """
         try:
+            if LOG_SQL_STATEMENT:
+                logger.info("\t[Sql Statement] sql = %s, args = %s", query, args)
+
             return cursor.executemany(query, args)
         except Exception as err:
             self._reset(self.is_reusable_error(err))
@@ -118,6 +128,8 @@ class BaseShell(object):
 class SqlShell(BaseShell):
     """ sql shell """
 
+    _TAG = "\t[SqlShell]"
+
     def __init__(self, pool):
         self._pool = pool  # type: Pool
         self._connection = None  # type:Connection
@@ -125,7 +137,9 @@ class SqlShell(BaseShell):
     def _reset(self, reusable=None):
         if not self._connection:
             return
-        log_debug("_result in shell, conn = %s, reusable = %s", self._connection, reusable)
+
+        logger.debug("%s %s reset, conn = %s, reusable = %s", self._TAG, id(self), id(self._connection), reusable)
+
         if self._pool:
             can_reuse = False if reusable is False else True
             self._pool.release(self._connection, can_reuse=can_reuse)
@@ -134,18 +148,14 @@ class SqlShell(BaseShell):
         return
 
     def __enter__(self):
-        log_debug("+++ enter Sql Shell")
+        logger.debug("%s %s enter sql shell", self._TAG, id(self))
         self._reset(None)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._reset(self.is_reusable_error(exc_val))
-        log_debug("+++ exit Sql Shell")
+        logger.debug("%s %s exit Sql Shell", self._TAG, id(self))
         pass
-
-    def __del__(self):
-        self._reset(None)
-        self._pool = None
 
     def cursor(self):
         """
@@ -170,12 +180,11 @@ class SqlShell(BaseShell):
 class _TransactionSqlShell(BaseShell):
     """trans shell"""
 
+    _TAG = '\t[TransactionSqlShell]'
+
     def __init__(self, pool):
         self._pool = pool  # type:Pool
         self._connection = self._pool.get_connection()
-        self._original_autocommit = self._connection.get_autocommit()
-        self._connection.autocommit(False)
-
         self._committed = False  # by default, transaction is not committed
         self._can_reuse = True  # by default, connection can be reused
         self._started = False
@@ -196,11 +205,13 @@ class _TransactionSqlShell(BaseShell):
     def _execute(self, cursor, query, *args, **kwargs):
         if not self._started:
             raise Exception('transaction is not begin')
+
         return super(_TransactionSqlShell, self)._execute(cursor, query, *args, **kwargs)
 
     def _execute_many(self, cursor, query, args):
         if not self._started:
             raise Exception('transaction is not begin')
+
         return super(_TransactionSqlShell, self)._execute_many(cursor, query, args)
 
     def __enter__(self):  # start transaction
@@ -210,23 +221,20 @@ class _TransactionSqlShell(BaseShell):
         self._connection.begin()
         self._started = True
 
-        log_debug("=== start transaction ok")
+        logger.debug('%s %s start transaction ok', self._TAG, id(self))
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):  # commit transaction and release connection
         try:
             if exc_val:
                 self._connection.rollback()
+                logger.debug('%s %s end transaction with rollback.', self._TAG, id(self))
             else:
                 self._connection.commit()
-
-            if self._original_autocommit is not None:
-                self._connection.autocommit(self._original_autocommit)
-
-            log_debug(" === end transaction ok")
+                logger.debug('%s %s end transaction with commit.', self._TAG, id(self))
         except Exception as err:
-            self._reset(self.is_reusable_error(err))
-            log_debug(" === end transaction failed")
+            logger.error("%s %s end transaction fail, error=%s", self._TAG, id(self), err)
+            self._reset(False)
 
         self._reset(self.is_reusable_error(exc_val))
 
@@ -237,19 +245,3 @@ class _TransactionSqlShell(BaseShell):
             self._pool = None
             self._committed = True
         return
-
-    def __del__(self):
-        try:
-            if self._pool and self._connection:
-                if self._original_autocommit is not None:
-                    self._connection.autocommit(self._original_autocommit)
-                self._pool.release(self._connection, self._can_reuse)
-        except (Exception,):
-            pass
-
-        self._pool = None
-        self._connection = None
-        return
-
-
-pass

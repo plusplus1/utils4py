@@ -4,11 +4,14 @@
 import os
 import threading
 import time
+import traceback
 from itertools import chain
 
 from pymysql.connections import Connection as _Connection
 
-from utils4py.pymysql_pool.log import *
+from utils4py.pymysql_pool.log import get_logger
+
+logger = get_logger()
 
 
 class Connection(_Connection):
@@ -33,6 +36,8 @@ class Connection(_Connection):
 
 class Pool(object):
     """ pool """
+
+    _TAG = '\t[Pool]'
 
     def __init__(self, **connect_args):
         self.connection_args = connect_args
@@ -81,8 +86,9 @@ class Pool(object):
         except IndexError:
             conn = self.make_connection()
 
-        log_debug("get connection  connection_count = %s, conn = %s",
-                  self._created_connections, conn)
+        logger.debug("%s %s get connection, count=%s, conn=%s", self._TAG, id(self),
+                     self._created_connections, id(conn))
+
         return conn
 
     def make_connection(self):
@@ -90,8 +96,7 @@ class Pool(object):
         conn.pid = self.pid
         self._atom_increment_created_count(1)
 
-        log_debug("make  connection  connection_count = %s, conn = %s",
-                  self._created_connections, conn)
+        logger.debug("%s %s make new connection %s", self._TAG, id(self), id(conn))
         return conn
 
     def release(self, connection, can_reuse=None):
@@ -103,8 +108,8 @@ class Pool(object):
         else:
             self._available_connections.append(connection)
 
-        log_debug("release connection , can_reuse = %s, connection_count = %s, conn = %s",
-                  can_reuse, self._created_connections, connection)
+        logger.debug("%s %s release connection, can_reuse = %s, connection_count = %s, conn = %s",
+                     self._TAG, id(self), can_reuse, self._created_connections, id(connection))
         pass
 
     def disconnect(self):
@@ -113,6 +118,11 @@ class Pool(object):
             try:
                 connection.close()
             except (Exception,):
+                logger.error("%s %s disconnect fail, detail= %s",
+                             self._TAG,
+                             id(self),
+                             traceback.format_exc()
+                             )
                 pass
         return
 
