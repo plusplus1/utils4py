@@ -37,6 +37,11 @@ class BaseFilter(object):
     def __call__(self, *args, **kwargs):
         self.app.before_request(self.before_request)
         self.app.teardown_request(self.after_request)
+
+        before_response = getattr(self, 'before_response', None)
+        if before_response and callable(before_response):
+            self.app.after_request(before_response)
+
         return
 
     pass
