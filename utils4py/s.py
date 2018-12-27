@@ -96,7 +96,10 @@ class TextUtils(object):
         if max_len and isinstance(max_len, six.integer_types) and max_len > 0:
             r = max_len
 
-        return True if re.match(ur"[\u4e00-\u9fa5]{%d,%d}" % (l, r), unicode_val) else False
+        if l <= len(unicode_val) <= r:
+            if re.match(ur"^[\u4e00-\u9fa5]+$", unicode_val):
+                return True
+        return False
 
     @classmethod
     def match_chinese_name(cls, val):
