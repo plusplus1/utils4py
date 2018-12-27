@@ -5,6 +5,7 @@ import datetime
 import decimal
 import hashlib
 import json
+import re
 
 import six
 
@@ -29,6 +30,8 @@ class TextUtils(object):
             return json.JSONEncoder.default(self, o)
 
         pass
+
+    DefaultJSONEncoder = _JSONEncoder
 
     @classmethod
     def to_string(cls, value):
@@ -72,7 +75,31 @@ class TextUtils(object):
             return hashlib.md5(val.encode('utf8')).hexdigest()
         return hashlib.md5(val).hexdigest()
 
+    @classmethod
+    def match_chinese(cls, val, min_len=None, max_len=None):
+        """
+        try match text to chinese string, e.g: check if val is a valid chinese name
+        
+        :param val: input text
+        :param int min_len: default is 2
+        :param int max_len: default is 15
+        :return: bool
+        """
+        if not isinstance(val, six.text_type):
+            unicode_val = val.decode('utf8')
+        else:
+            unicode_val = val
+
+        l, r = 2, 15
+        if min_len and isinstance(min_len, six.integer_types) and min_len > 0:
+            l = min_len
+        if max_len and isinstance(max_len, six.integer_types) and max_len > 0:
+            r = max_len
+
+        return True if re.match(ur"[\u4e00-\u9fa5]{%d,%d}" % (l, r), unicode_val) else False
+
+    @classmethod
+    def match_chinese_name(cls, val):
+        return cls.match_chinese(val, 2, 12)
+
     pass
-
-
-pass
