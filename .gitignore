@@ -7,3 +7,5 @@ dist
 *egg-info
 
 /test_*.py
+__pycache__
+

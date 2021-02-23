@@ -1,13 +1,19 @@
+import re
+
 from setuptools import find_packages, setup
 
 extras_require = {}
 
-NAME = "utils4py"
-VERSION = "0.1.13"
-
+version = None
+with open('utils4py/__init__.py', 'r') as f:
+    for line in f:
+        m = re.match(r'^__version__\s*=\s*(["\'])([^"\']+)\1', line)
+        if m:
+            version = m.group(2)
+            break
 setup(
-    name=NAME,
-    version=VERSION,
+    name="utils4py",
+    version=version,
     description="A set of useful utilities for python",
     author='plusplus1',
     author_email='comeson@126.com',
@@ -22,12 +28,14 @@ setup(
     ],
     python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*',
     install_requires=[
-        "six",
-        "flask",
-        "PyMySQL",
-        "redis",
-        "gevent",
-        "pymongo",
+        "six==1.12.0",
+        "flask==1.1.1",
+        "PyMySQL==0.9.3",
+        "redis==3.2.1",
+        "gevent>=1.4.0",
+        "pymongo==3.8.0",
+        "PyYAML==5.1.1",
+        "requests>=2.22.0",
     ],
     extras_require=extras_require,
 )
