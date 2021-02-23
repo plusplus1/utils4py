@@ -3,9 +3,10 @@
 
 import os
 
+import yaml
 from six.moves import configparser
 
-import utils4py.env
+from utils4py.env import env
 
 
 class ConfUtils(object):
@@ -13,14 +14,14 @@ class ConfUtils(object):
         Config utilities
     """
 
-    __CONF_DIR__ = "conf"
-    __CONF_TEST_DIR__ = "conf_test"
+    __conf_dir__ = "conf"
+    __conf_test_dir__ = "conf_test"
 
     @classmethod
     def get_base_dir(cls):
-        if utils4py.env.is_debug():
-            return os.path.abspath(os.path.join(os.getcwd(), cls.__CONF_TEST_DIR__))
-        return os.path.abspath(os.path.join(os.getcwd(), cls.__CONF_DIR__))
+        if env.is_debug:
+            return os.path.abspath(os.path.join(os.getcwd(), cls.__conf_test_dir__))
+        return os.path.abspath(os.path.join(os.getcwd(), cls.__conf_dir__))
 
     @classmethod
     def complete_path(cls, relative_path):
@@ -38,7 +39,7 @@ class ConfUtils(object):
     @classmethod
     def load_parser(cls, config_file):
         """
-        :param str config_file: 
+        :param str config_file:
         :rtype: ConfigParser.ConfigParser
         """
         filename = config_file
@@ -49,7 +50,14 @@ class ConfUtils(object):
         parser.read(filename)
         return parser
 
-    pass
+    @classmethod
+    def load_yaml(cls, config_file):
+        filename = config_file
+        if not str.startswith(config_file, "/"):
+            filename = cls.complete_path(config_file)
+
+        with open(filename) as in_stream:
+            return yaml.safe_load(in_stream)
 
 
 pass

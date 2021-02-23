@@ -7,10 +7,14 @@ import threading
 
 import redis
 import redis.client
+import six
 
 from utils4py import ConfUtils, TextUtils
 
-_redis_conf = ConfUtils.load_parser("data_source/redis.conf")
+try:
+    _redis_conf = ConfUtils.load_yaml("data_source/redis.yaml")
+except (Exception,):
+    _redis_conf = dict()
 
 settings_reuse_pool = True
 _conn_pool = dict()
@@ -54,7 +58,7 @@ class _RedisWrapper(object):
             assert item in self._method_groups_1 or item in self._method_groups_2
             method = getattr(self._client, item)
             assert method
-        except:
+        except BaseException:
             raise AttributeError(item)
 
         if item in self._method_groups_1:
@@ -82,6 +86,9 @@ class _RedisWrapper(object):
     def make_key(self, key):
         return "{}:{}".format(self._key_prefix, key)
 
+    def pipeline(self, *args, **kwargs):
+        return self._client.pipeline(*args, **kwargs)
+
 
 class _ConnectParams(object):
     """
@@ -101,7 +108,7 @@ class _ConnectParams(object):
 
     def init_with_section(self, section_name):
         self._section = section_name
-        for k, v in _redis_conf.items(section_name):
+        for k, v in six.iteritems(_redis_conf[section_name]):
             self._params[k] = v
         self._params['port'] = int(self._params['port'])
         self._params['db'] = int(self._params['db'])
@@ -109,7 +116,7 @@ class _ConnectParams(object):
 
     def connect(self):
         """
-        :return: 
+        :return:
         :rtype: redis.Redis
         """
         conn = redis.Redis(**self._params)

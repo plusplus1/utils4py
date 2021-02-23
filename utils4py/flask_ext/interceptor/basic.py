@@ -6,16 +6,16 @@ import time
 
 from flask import g, request
 
-from utils4py import TextUtils
-from utils4py.flask_ext.filter import BaseFilter
+from utils4py.flask_ext.interceptor import BaseInterceptor
+from utils4py.text import TextUtils
 
 
-class Filter(BaseFilter):
+class BasicInterceptor(BaseInterceptor):
     """
-        Log filters
+    Basic interceptor
     """
 
-    IGNORE_LOG_REQUEST_PATH = set([])
+    IGNORE_LOG_REQUEST_PATH = {"/", "/ping", "/favicon.ico"}
 
     @classmethod
     def _format_kv(cls, kv_log):
@@ -29,7 +29,6 @@ class Filter(BaseFilter):
         ))
 
     def before_request(self, *args, **kwargs):
-
         g.req_timer = {'start': time.time(), 'end': 0, 'cost': 0, }
 
         g.method = request.method
@@ -65,11 +64,11 @@ class Filter(BaseFilter):
         g.req_timer['cost'] = round(1000 * (g.req_timer['end'] - g.req_timer['start']), 2)
 
         log_data = {
-            'method'   : g.method,
+            'method': g.method,
             'remote_ip': g.remote_ip,
-            'path'     : g.path,
-            'code'     : g.code,
-            'cost'     : g.req_timer['cost'],
+            'path': g.path,
+            'code': g.code,
+            'cost': g.req_timer['cost'],
         }
         if g.kv_log and isinstance(g.kv_log, dict):
             for k, v in g.kv_log.items():

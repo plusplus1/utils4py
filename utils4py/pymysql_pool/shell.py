@@ -2,17 +2,27 @@
 # -*- coding: utf-8 -*-
 
 import abc
+import logging
+import os
 import time
 
 import pymysql.err
 from pymysql.cursors import DictCursor
 
-from utils4py.pymysql_pool.log import get_logger
 from utils4py.pymysql_pool.pool import Connection, Pool
 
-logger = get_logger()
+_logger = logging.getLogger(__name__)
 
-LOG_SQL_STATEMENT = False
+try:
+    _echo = str.upper(os.environ.get("utils4py.pymysql_pool.echo", ""))
+    if _echo and _echo in {'1', 'T', 'TRUE'}:
+        _echo_sql_statement = True
+    else:
+        _echo_sql_statement = False
+except (Exception,):
+    _echo_sql_statement = False
+
+LOG_SQL_STATEMENT = _echo_sql_statement  # 兼容
 
 
 class MultipleRowsError(pymysql.err.DataError):
@@ -48,31 +58,34 @@ class BaseShell(object):
 
     def _execute(self, cursor, query, *args, **kwargs):
         """
-        :param DictCursor cursor: 
-        :param query: 
-        :param args: 
-        :param kwargs: 
-        :return: 
+        :param DictCursor cursor:
+        :param query:
+        :param args:
+        :param kwargs:
+        :return:
         """
         try:
-            if LOG_SQL_STATEMENT:
-                logger.info("\t[Sql Statement] sql = %s, args = %s", query, kwargs or args)
+            if _echo_sql_statement:
+                _logger.info("\t[Sql Statement] sql = %s, args = %s", query, kwargs or args)
 
-            return cursor.execute(query, kwargs or args)
+            if len(kwargs or args) > 0:
+                return cursor.execute(query, kwargs or args)
+            else:
+                return cursor.execute(query)
         except Exception as err:
             self._reset(self.is_reusable_error(err))
             raise
 
     def _execute_many(self, cursor, query, args):
         """
-        :param DictCursor cursor: 
-        :param query: 
-        :param args: 
-        :return: 
+        :param DictCursor cursor:
+        :param query:
+        :param args:
+        :return:
         """
         try:
-            if LOG_SQL_STATEMENT:
-                logger.info("\t[Sql Statement] sql = %s, args = %s", query, args)
+            if _echo_sql_statement:
+                _logger.info("\t[Sql Statement] sql = %s, args = %s", query, args)
 
             return cursor.executemany(query, args)
         except Exception as err:
@@ -138,7 +151,7 @@ class SqlShell(BaseShell):
         if not self._connection:
             return
 
-        logger.debug("%s %s reset, conn = %s, reusable = %s", self._TAG, id(self), id(self._connection), reusable)
+        _logger.debug("%s %s reset, conn = %s, reusable = %s", self._TAG, id(self), id(self._connection), reusable)
 
         if self._pool:
             can_reuse = False if reusable is False else True
@@ -148,13 +161,13 @@ class SqlShell(BaseShell):
         return
 
     def __enter__(self):
-        logger.debug("%s %s enter sql shell", self._TAG, id(self))
+        _logger.debug("%s %s enter sql shell", self._TAG, id(self))
         self._reset(None)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._reset(self.is_reusable_error(exc_val))
-        logger.debug("%s %s exit Sql Shell", self._TAG, id(self))
+        _logger.debug("%s %s exit Sql Shell", self._TAG, id(self))
         pass
 
     def cursor(self):
@@ -221,19 +234,19 @@ class _TransactionSqlShell(BaseShell):
         self._connection.begin()
         self._started = True
 
-        logger.debug('%s %s start transaction ok', self._TAG, id(self))
+        _logger.debug('%s %s start transaction ok', self._TAG, id(self))
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):  # commit transaction and release connection
         try:
             if exc_val:
                 self._connection.rollback()
-                logger.debug('%s %s end transaction with rollback.', self._TAG, id(self))
+                _logger.debug('%s %s end transaction with rollback.', self._TAG, id(self))
             else:
                 self._connection.commit()
-                logger.debug('%s %s end transaction with commit.', self._TAG, id(self))
+                _logger.debug('%s %s end transaction with commit.', self._TAG, id(self))
         except Exception as err:
-            logger.error("%s %s end transaction fail, error=%s", self._TAG, id(self), err)
+            _logger.error("%s %s end transaction fail, error=%s", self._TAG, id(self), err)
             self._reset(False)
 
         self._reset(self.is_reusable_error(exc_val))

@@ -9,7 +9,11 @@ from pymysql.cursors import DictCursor
 from utils4py import ConfUtils
 from utils4py.pymysql_pool import Pool, SqlShell
 
-_mysql_conf = ConfUtils.load_parser("data_source/mysql.conf")
+try:
+    _mysql_conf = ConfUtils.load_yaml("data_source/mysql.yaml")
+except (Exception,):
+    _mysql_conf = dict()
+
 
 _conn_pool = dict()
 _conn_mutex = threading.RLock()
@@ -17,8 +21,8 @@ _conn_mutex = threading.RLock()
 
 def connect_pool(section):
     """
-    :param section: 
-    :rtype: SqlShell 
+    :param section:
+    :rtype: SqlShell
     """
     with _conn_mutex:
         if section not in _conn_pool:
@@ -77,7 +81,7 @@ class _ConnectParams(object):
         return self._time_zone or '+8:00'
 
     def init_with_section(self, section_name):
-        items = dict(_mysql_conf.items(section_name))
+        items = _mysql_conf[section_name]
         self._host = str.strip(items.get('host', ""))
         self._port = int(items.get('port', 3306))
         self._user = str.strip(items.get('user', ""))
@@ -108,13 +112,13 @@ class _ConnectParams(object):
                     )
 
     def __str__(self):
-        return json.dumps({'host'         : self.host,
-                           'port'         : self.port,
-                           'database'     : self.db,
-                           'user'         : self.user,
-                           'password'     : self.password,
-                           'time_zone'    : self.time_zone,
-                           'charset'      : self.charset,
+        return json.dumps({'host': self.host,
+                           'port': self.port,
+                           'database': self.db,
+                           'user': self.user,
+                           'password': self.password,
+                           'time_zone': self.time_zone,
+                           'charset': self.charset,
                            'max_idle_time': self._max_idle_time,
                            })
 

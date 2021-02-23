@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import logging
 import os
 import threading
 import time
@@ -9,9 +10,7 @@ from itertools import chain
 
 from pymysql.connections import Connection as _Connection
 
-from utils4py.pymysql_pool.log import get_logger
-
-logger = get_logger()
+_logger = logging.getLogger(__name__)
 
 
 class Connection(_Connection):
@@ -74,7 +73,7 @@ class Pool(object):
         return
 
     def get_connection(self):
-        """ 
+        """
         :rtype: Connection
         """
         self.check_pid()
@@ -86,8 +85,8 @@ class Pool(object):
         except IndexError:
             conn = self.make_connection()
 
-        logger.debug("%s %s get connection, count=%s, conn=%s", self._TAG, id(self),
-                     self._created_connections, id(conn))
+        _logger.debug("%s %s get connection, count=%s, conn=%s", self._TAG, id(self),
+                      self._created_connections, id(conn))
 
         return conn
 
@@ -96,7 +95,7 @@ class Pool(object):
         conn.pid = self.pid
         self._atom_increment_created_count(1)
 
-        logger.debug("%s %s make new connection %s", self._TAG, id(self), id(conn))
+        _logger.debug("%s %s make new connection %s", self._TAG, id(self), id(conn))
         return conn
 
     def release(self, connection, can_reuse=None):
@@ -108,8 +107,8 @@ class Pool(object):
         else:
             self._available_connections.append(connection)
 
-        logger.debug("%s %s release connection, can_reuse = %s, connection_count = %s, conn = %s",
-                     self._TAG, id(self), can_reuse, self._created_connections, id(connection))
+        _logger.debug("%s %s release connection, can_reuse = %s, connection_count = %s, conn = %s",
+                      self._TAG, id(self), can_reuse, self._created_connections, id(connection))
         pass
 
     def disconnect(self):
@@ -118,11 +117,8 @@ class Pool(object):
             try:
                 connection.close()
             except (Exception,):
-                logger.error("%s %s disconnect fail, detail= %s",
-                             self._TAG,
-                             id(self),
-                             traceback.format_exc()
-                             )
+                _logger.error("%s %s disconnect fail, detail= %s", self._TAG, id(self),
+                              traceback.format_exc())
                 pass
         return
 

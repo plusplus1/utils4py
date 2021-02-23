@@ -11,7 +11,10 @@ from utils4py import ConfUtils
 
 settings_reuse_pool = True
 
-_mongo_conf = ConfUtils.load_parser("data_source/mongo.conf")
+try:
+    _mongo_conf = ConfUtils.load_yaml("data_source/mongo.yaml")
+except (Exception,):
+    _mongo_conf = dict()
 
 _conn_pool = dict()
 _reuse_mutex = threading.RLock()
@@ -19,7 +22,7 @@ _reuse_mutex = threading.RLock()
 
 def connect(section):
     """
-    :param section: 
+    :param section:
     :rtype: Database
     """
     if settings_reuse_pool:
@@ -53,7 +56,7 @@ class _ConnectParams(object):
         return self._db
 
     def init_with_section(self, section):
-        conf = dict(_mongo_conf.items(section=section))
+        conf = _mongo_conf[section]
         self._user = conf.get("user", "")
         self._password = conf.get("password", "")
         self._host = conf.get("host", "")
