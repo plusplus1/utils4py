@@ -34,7 +34,7 @@ setup(
         "redis==3.2.1",
         "gevent>=1.4.0",
         "pymongo==3.8.0",
-        "PyYAML==5.1.1",
+        "PyYAML==5.4",
         "requests>=2.22.0",
     ],
     extras_require=extras_require,
