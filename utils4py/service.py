@@ -142,7 +142,7 @@ class BaseService(ErrorMixin):
                 result = ret_run
 
             result = self.format_result(result)
-            return ResultBuilder.build(ResultBuilder.err_code_ok, data=result, appends=appends, )
+            return self.builder_cls.build(ResultBuilder.err_code_ok, data=result, appends=appends, )
         except Exception as err:
             return self._process_error(err)
 

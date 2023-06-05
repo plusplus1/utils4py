@@ -95,7 +95,7 @@ def _service_factory(cls):
 
         kwargs['logger'] = logger
         result = obj.execute(*args, **kwargs)
-        builder_cls = utils4py.service.ResultBuilder
+        builder_cls = getattr(obj, 'builder_cls', utils4py.service.ResultBuilder)
 
         try:
             code = result.get(builder_cls.key_error_code)

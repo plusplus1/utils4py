@@ -68,11 +68,9 @@ class ErrorMixin(object):
             code = err.code
         elif err.args and isinstance(err.args, (tuple, list)) and len(err.args) > 0:
             code = err.args[0]
-
-        if isinstance(code, six.integer_types):
-            return code
         try:
-            return int(code)
+            if isinstance(code, six.integer_types) or isinstance(code, six.string_types):
+                return code
         except (Exception,):
             return cls.err_code_unknown
 
