@@ -119,7 +119,8 @@ def _service_factory(cls):
             return flask.render_template(tpl, **result)
 
         # finally return json
-        return utils4py.TextUtils.json_dumps(result)
+        res_json = utils4py.TextUtils.json_dumps(result)
+        return flask.make_response(res_json, {'Content-Type': 'application/json'})
 
     return _factory
 
