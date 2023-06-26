@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
+
 import logging
 
 from utils4py.conf import ConfUtils
@@ -8,7 +10,7 @@ from utils4py.errors import SimpleError
 from utils4py.errors import overwrite_error_codes
 from utils4py.text import TextUtils
 
-__version__ = '0.1.17'
+__version__ = '0.1.18'
 
 _logger = logging.getLogger(__name__)
 

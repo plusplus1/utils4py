@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import copy
 import json
 import threading
 
 import redis
 import redis.client
+import rediscluster
 import six
+from werkzeug.utils import cached_property
 
 from utils4py import ConfUtils, TextUtils
 
@@ -53,6 +54,13 @@ class _RedisWrapper(object):
         self._client = client  # type:redis.Redis
         self._key_prefix = key_prefix  # type:str
 
+    @cached_property
+    def raw_client(self):
+        """
+        :rtype: redis.Redis
+        """
+        return self._client
+
     def __getattr__(self, item):
         try:
             assert item in self._method_groups_1 or item in self._method_groups_2
@@ -96,22 +104,58 @@ class _ConnectParams(object):
     """
 
     _default_params = {
-        'host'    : "localhost",
-        "port"    : 6379,
+        'host': "localhost",
+        "port": 6379,
         "password": "",
-        "db"      : 0,
+        "db": 0,
     }
 
+    _default_connect_timeout_ms = 1000.0
+    _default_read_timeout_ms = 500.0
+
+    """
+    # 集群模式：参数
+    args = dict(startup_nodes=[dict(zip(['host', 'port'], b)) for b in nodes], password=redis_config.get('password', ''),
+                    socket_connect_timeout=connect_ms / 1000., socket_timeout=read_ms / 1000.,
+                    skip_full_coverage_check=True, )
+    """
+
     def __init__(self):
-        self._params = copy.deepcopy(_ConnectParams._default_params)
+        self._params = dict()
         self._section = None
 
     def init_with_section(self, section_name):
         self._section = section_name
-        for k, v in six.iteritems(_redis_conf[section_name]):
+        self._params.setdefault("socket_connect_timeout", self._default_connect_timeout_ms)
+        self._params.setdefault("socket_timeout", self._default_read_timeout_ms)
+
+        _raw_cfg = _redis_conf[section_name]  # type: dict
+        _is_cluster_mode = _raw_cfg.get('startup_nodes')
+
+        if _is_cluster_mode:
+            self._params.setdefault("skip_full_coverage_check", True)
+        else:
+            self._params.update(self._default_params)
+
+        for k, v in six.iteritems(_raw_cfg):
             self._params[k] = v
-        self._params['port'] = int(self._params['port'])
-        self._params['db'] = int(self._params['db'])
+
+        if not _is_cluster_mode:
+            self._params['port'] = int(self._params['port'])
+            self._params['db'] = int(self._params['db'])
+        else:
+            startup_nodes = self._params['startup_nodes']
+            if startup_nodes and isinstance(startup_nodes, list) and isinstance(startup_nodes[0], str):
+                startup_nodes = list(map(lambda y: dict(zip(['host', 'port'], (y[0], int(y[1])))), [x.split(':', 1) for x in startup_nodes]))
+            for node in startup_nodes:
+                node['port'] = int(node['port'])
+            self._params['startup_nodes'] = startup_nodes
+
+        # timeout 配置默认都是毫秒
+        for _timeout_ms in ['socket_connect_timeout', 'socket_timeout']:
+            if _timeout_ms in self._params:
+                self._params[_timeout_ms] = float(self._params[_timeout_ms]) / 1000.
+
         return self
 
     def connect(self):
@@ -119,7 +163,8 @@ class _ConnectParams(object):
         :return:
         :rtype: redis.Redis
         """
-        conn = redis.Redis(**self._params)
+        clz = rediscluster.RedisCluster if self._params.get("startup_nodes", None) else redis.Redis
+        conn = clz(**self._params)
         if conn.ping():
             return _RedisWrapper(conn, self._section)
         return None
