@@ -63,7 +63,7 @@ def init_registry(cli: click.Group, base_packages, **startup_kwargs):
                 command_func = click.pass_context(_convert_handler_to_command(handler_clz_define, **copy.copy(startup_kwargs)))
 
                 # copy handler click params to command
-                setattr(command_func, param_field, getattr(handler_clz_define, param_field, None))
+                setattr(command_func, param_field, getattr(handler_clz_define, param_field, None) or list())
 
                 register_map[command_name] = command_func
 
