@@ -10,7 +10,7 @@ from utils4py.errors import SimpleError
 from utils4py.errors import overwrite_error_codes
 from utils4py.text import TextUtils
 
-__version__ = '0.1.20'
+__version__ = '0.1.21'
 
 _logger = logging.getLogger(__name__)
 
