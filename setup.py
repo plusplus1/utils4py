@@ -31,7 +31,7 @@ setup(
                       "PyMySQL>=0.9.3",
                       "redis>=3.2.1",
                       "gevent>=1.4.0",
-                      "pymongo==3.8.0",
+                      "pymongo==4.6.3",
                       "PyYAML>=5.1.1",
                       "requests>=2.22.0",
                       'redis-py-cluster==2.1.3',
