@@ -8,4 +8,4 @@ dist
 
 /test_*.py
 __pycache__
-
+sync_*.sh

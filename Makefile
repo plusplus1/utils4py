@@ -10,7 +10,7 @@ fmt:
 .PHONY: build
 build: clean build_py2 build_py3
 
-.PHONY: build_py2 
+.PHONY: build_py2
 build_py2: clean
 	python2.7 setup.py sdist bdist_wheel || true
 	rm -rf build *.egg-info dist/*.tar.gz

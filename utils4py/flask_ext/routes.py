@@ -9,7 +9,11 @@ import traceback
 
 import flask
 import six
-from werkzeug.wrappers import BaseResponse
+
+try:
+    from werkzeug.wrappers import BaseResponse
+except ImportError:
+    from werkzeug.wrappers import Response as BaseResponse
 
 import utils4py.env
 import utils4py.scan
